@@ -1,4 +1,5 @@
 # back-end_developer_assessment
+A simple blog REST API built for the Univision Backend Developer assignment
 
 # 📝 Blog Management System - RESTful API
 
@@ -18,6 +19,7 @@ This project is a simple Python-based backend API for managing a blog system. It
 
 # Türkçe Açıklama
 UniVision back-end developer görevi olarak:
+
 Göreviniz, verilen gereksinimler doğrultusunda bir blog yönetim sistemi için gerekli Back-End servislerini geliştirmek ve API'leri sağlamak.
 
 Görev Detayları:
