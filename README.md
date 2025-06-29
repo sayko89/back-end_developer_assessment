@@ -16,11 +16,19 @@ This project is a simple Python-based backend API for managing a blog system. It
 
 ---
 
-## 🔧 Setup
+# Türkçe Açıklama
+UniVision back-end developer görevi olarak:
+Göreviniz, verilen gereksinimler doğrultusunda bir blog yönetim sistemi için gerekli Back-End servislerini geliştirmek ve API'leri sağlamak.
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+Görev Detayları:
 
-# Run the application
-python app.py
+Veritabanı Tasarımı:
+
+Basit bir blog yönetim sistemi için gerekli veritabanı varlıklarını (makaleler, yorumlar, kullanıcılar vb.) belirleyin.Veritabanı şemasını SQLite veya PostgreSQL gibi bir veritabanı yönetim sistemi kullanarak tasarlayın.
+API Geliştirme:
+
+Tasarladığınız veritabanı şemasına uygun olarak, aşağıdaki özellikleri içeren bir RESTful API geliştirin: Makale listeleme, detay görüntüleme, ekleme, güncelleme ve silme operasyonları.Kullanıcı kayıt, giriş ve profil yönetimi işlemleri. Yorum ekleme ve silme işlemleri. API'nin güvenliği için basit bir kimlik doğrulama yöntemi (örneğin, token tabanlı kimlik doğrulama) kullanın.
+Dokümantasyon:
+
+API'nin kullanımını açıklayan ve endpoint'leri belirten basit bir dokümantasyon hazırlayın. Swagger veya OpenAPI kullanabilirsiniz, ancak detaylı olması gerekmiyor.
+tamamladım ve zip dosyamı paylaşıyorum.
