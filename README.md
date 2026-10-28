@@ -218,7 +218,7 @@ TEST_DATABASE_URL=postgresql://user:pass@localhost/blog_test python -m pytest
 
 ## Then and now
 
-The version submitted for the assessment is preserved at the tag
+The version submitted for the assessment is preserved on the branch
 [`original-submission`](https://github.com/sayko89/back-end_developer_assessment/tree/original-submission)
 (the code was in `blog_backend.zip`). In October 2026 I reworked it. These problems in the original were
 reproduced before fixing them:
