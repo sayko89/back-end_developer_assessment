@@ -6,6 +6,16 @@
   <a href="https://github.com/sayko89/back-end_developer_assessment/actions/workflows/tests.yml"><img src="https://github.com/sayko89/back-end_developer_assessment/actions/workflows/tests.yml/badge.svg" alt="tests"></a>
 </p>
 
+<h3 align="center">
+  <a href="https://blog-api-ni5d.onrender.com/docs/">▶&nbsp; Live demo — try every endpoint in your browser</a>
+</h3>
+
+<p align="center">
+  <sub>Log in with <code>ada@example.com</code> / <code>demo-password-123</code>, or register your own account.
+  Hosted on a free plan: the first request after a quiet spell can take about a minute, and the demo
+  resets to sample data whenever it sleeps.</sub>
+</p>
+
 <p align="center">
   <a href="#the-assignment">The assignment</a> &nbsp;·&nbsp;
   <a href="#endpoints">Endpoints</a> &nbsp;·&nbsp;
@@ -76,6 +86,9 @@ All paths start with `/api`. 🔒 = needs `Authorization: Bearer <token>`.
 
 ## Try it in 60 seconds
 
+**In the browser** — open the [live demo](https://blog-api-ni5d.onrender.com/docs/), call `POST /api/login`
+with the demo account, press **Authorize** and paste the token. Every endpoint can then be tried from the page.
+
 **With Docker** — the API, PostgreSQL and the migrations, in one command:
 
 ```bash
@@ -130,6 +143,8 @@ Everything is optional for local use; see [`.env.example`](.env.example).
 | `DEMO_SEED` | `0` | In Docker: `1` fills an empty database with sample content at startup |
 
 ### Deploy your own
+
+The [live demo](https://blog-api-ni5d.onrender.com/docs/) runs from this button:
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/sayko89/back-end_developer_assessment)
 
