@@ -1,0 +1,510 @@
+openapi: 3.0.3
+info:
+  title: Blog API
+  version: 2.0.0
+  description: |
+    RESTful backend for a small blog: accounts and profiles, articles, comments and votes.
+
+    **Authentication.** Log in with `POST /api/login` and send the token on protected
+    endpoints as `Authorization: Bearer <token>`. Tokens expire after 60 minutes by default.
+
+    **Errors.** Every error has the same shape:
+    `{"error": {"code": "validation_error", "message": "…", "details": {"field": "…"}}}`
+servers:
+  - url: /
+tags:
+  - name: Auth
+  - name: Profile
+  - name: Articles
+  - name: Votes
+  - name: Comments
+  - name: System
+
+paths:
+  /api/register:
+    post:
+      tags: [Auth]
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RegisterRequest'}
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {user: {$ref: '#/components/schemas/PrivateUser'}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '409': {$ref: '#/components/responses/Conflict'}
+
+  /api/login:
+    post:
+      tags: [Auth]
+      summary: Log in and receive a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email, example: ada@example.com}
+                password: {type: string, format: password, example: correct-horse-battery}
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LoginResponse'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/profile:
+    get:
+      tags: [Profile]
+      summary: Get your own profile
+      security: [{bearerAuth: []}]
+      responses:
+        '200':
+          description: Your profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {user: {$ref: '#/components/schemas/PrivateUser'}}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    patch:
+      tags: [Profile]
+      summary: Update your profile
+      description: Changing `email` or setting `new_password` also requires `current_password`.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: {type: string, example: ada_l}
+                email: {type: string, format: email}
+                bio: {type: string, maxLength: 500, example: Writes about analytical engines.}
+                new_password: {type: string, format: password, minLength: 8}
+                current_password: {type: string, format: password}
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {user: {$ref: '#/components/schemas/PrivateUser'}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    delete:
+      tags: [Profile]
+      summary: Delete your account
+      description: Also deletes your articles, comments and votes.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties: {password: {type: string, format: password}}
+      responses:
+        '204': {description: Account deleted}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+
+  /api/users/{user_id}:
+    get:
+      tags: [Profile]
+      summary: Get a user's public profile
+      parameters: [{$ref: '#/components/parameters/UserId'}]
+      responses:
+        '200':
+          description: Public profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    allOf:
+                      - {$ref: '#/components/schemas/PublicUser'}
+                      - type: object
+                        properties: {article_count: {type: integer, example: 3}}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/articles:
+    get:
+      tags: [Articles]
+      summary: List articles, newest first
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PerPage'}
+        - {name: author, in: query, description: Only articles by this user id, schema: {type: integer}}
+        - {name: q, in: query, description: Search in title and content, schema: {type: string}}
+      responses:
+        '200':
+          description: A page of articles (content shortened to an excerpt)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: '#/components/schemas/ArticleSummary'}}
+                  meta: {$ref: '#/components/schemas/PageMeta'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+    post:
+      tags: [Articles]
+      summary: Create an article
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ArticleInput'}
+      responses:
+        '201':
+          description: Created. The `Location` header points to the new article.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {article: {$ref: '#/components/schemas/Article'}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/articles/{article_id}:
+    parameters: [{$ref: '#/components/parameters/ArticleId'}]
+    get:
+      tags: [Articles]
+      summary: Get one article
+      responses:
+        '200':
+          description: The article
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {article: {$ref: '#/components/schemas/Article'}}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      tags: [Articles]
+      summary: Replace an article (author only)
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ArticleInput'}
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {article: {$ref: '#/components/schemas/Article'}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    patch:
+      tags: [Articles]
+      summary: Update some fields of an article (author only)
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: {type: string, maxLength: 200}
+                content: {type: string}
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {article: {$ref: '#/components/schemas/Article'}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Articles]
+      summary: Delete an article and its comments and votes (author only)
+      security: [{bearerAuth: []}]
+      responses:
+        '204': {description: Deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/articles/{article_id}/like:
+    parameters: [{$ref: '#/components/parameters/ArticleId'}]
+    post:
+      tags: [Votes]
+      summary: Like or dislike an article
+      description: One vote per user per article. Voting again changes your vote.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [is_like]
+              properties: {is_like: {type: boolean, description: 'true = like, false = dislike'}}
+      responses:
+        '200':
+          description: Vote recorded
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VoteResult'}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    delete:
+      tags: [Votes]
+      summary: Remove your vote
+      security: [{bearerAuth: []}]
+      responses:
+        '200':
+          description: Vote removed
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VoteResult'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/articles/{article_id}/comments:
+    parameters: [{$ref: '#/components/parameters/ArticleId'}]
+    get:
+      tags: [Comments]
+      summary: List an article's comments, oldest first
+      parameters:
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PerPage'}
+      responses:
+        '200':
+          description: A page of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: {type: array, items: {$ref: '#/components/schemas/Comment'}}
+                  meta: {$ref: '#/components/schemas/PageMeta'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    post:
+      tags: [Comments]
+      summary: Comment on an article
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties: {content: {type: string, maxLength: 2000, example: Great read!}}
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {comment: {$ref: '#/components/schemas/Comment'}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/comments:
+    post:
+      tags: [Comments]
+      summary: Comment on an article (original endpoint, article id in the body)
+      deprecated: true
+      description: Kept for compatibility with version 1. Prefer `POST /api/articles/{article_id}/comments`.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content, article_id]
+              properties:
+                content: {type: string}
+                article_id: {type: integer}
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {comment: {$ref: '#/components/schemas/Comment'}}
+        '400': {$ref: '#/components/responses/ValidationError'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/comments/{comment_id}:
+    delete:
+      tags: [Comments]
+      summary: Delete a comment
+      description: Allowed for the comment's author and for the author of the article.
+      security: [{bearerAuth: []}]
+      parameters:
+        - {name: comment_id, in: path, required: true, schema: {type: integer}}
+      responses:
+        '204': {description: Deleted}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        '200':
+          description: The service is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {status: {type: string, example: ok}}
+
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}
+
+  parameters:
+    ArticleId: {name: article_id, in: path, required: true, schema: {type: integer}}
+    UserId: {name: user_id, in: path, required: true, schema: {type: integer}}
+    Page: {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+    PerPage: {name: per_page, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 10}}
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username: {type: string, pattern: '^[A-Za-z0-9_.-]{3,30}$', example: ada}
+        email: {type: string, format: email, example: ada@example.com}
+        password: {type: string, format: password, minLength: 8, example: correct-horse-battery}
+    PublicUser:
+      type: object
+      properties:
+        id: {type: integer, example: 1}
+        username: {type: string, example: ada}
+        bio: {type: string, example: ''}
+        created_at: {type: string, format: date-time}
+    PrivateUser:
+      allOf:
+        - {$ref: '#/components/schemas/PublicUser'}
+        - type: object
+          properties: {email: {type: string, format: email, example: ada@example.com}}
+    LoginResponse:
+      type: object
+      properties:
+        token: {type: string}
+        token_type: {type: string, example: Bearer}
+        expires_in: {type: integer, description: Seconds until the token expires, example: 3600}
+        user: {$ref: '#/components/schemas/PrivateUser'}
+    Author:
+      type: object
+      properties:
+        id: {type: integer, example: 1}
+        username: {type: string, example: ada}
+    ArticleInput:
+      type: object
+      required: [title, content]
+      properties:
+        title: {type: string, maxLength: 200, example: Notes on the Analytical Engine}
+        content: {type: string, maxLength: 20000, example: The engine weaves algebraic patterns…}
+    ArticleBase:
+      type: object
+      properties:
+        id: {type: integer}
+        title: {type: string}
+        author: {$ref: '#/components/schemas/Author'}
+        likes: {type: integer}
+        dislikes: {type: integer}
+        comment_count: {type: integer}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    Article:
+      allOf:
+        - {$ref: '#/components/schemas/ArticleBase'}
+        - type: object
+          properties: {content: {type: string}}
+    ArticleSummary:
+      allOf:
+        - {$ref: '#/components/schemas/ArticleBase'}
+        - type: object
+          properties: {excerpt: {type: string, description: First 200 characters of the content}}
+    Comment:
+      type: object
+      properties:
+        id: {type: integer}
+        content: {type: string}
+        article_id: {type: integer}
+        author: {$ref: '#/components/schemas/Author'}
+        created_at: {type: string, format: date-time}
+    VoteResult:
+      type: object
+      properties:
+        your_vote: {type: string, nullable: true, enum: [like, dislike, null]}
+        likes: {type: integer}
+        dislikes: {type: integer}
+    PageMeta:
+      type: object
+      properties:
+        page: {type: integer}
+        per_page: {type: integer}
+        total: {type: integer}
+        pages: {type: integer}
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: {type: string, example: validation_error}
+            message: {type: string}
+            details: {type: object, additionalProperties: {type: string}}
+
+  responses:
+    ValidationError:
+      description: The request is invalid
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    Unauthorized:
+      description: Missing, invalid or expired token, or wrong credentials
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    Forbidden:
+      description: Authenticated, but not allowed
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    NotFound:
+      description: The resource does not exist
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}
+    Conflict:
+      description: Username or email already in use
+      content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}

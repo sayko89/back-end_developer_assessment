@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=8
+# Only needed when DATABASE_URL / TEST_DATABASE_URL points to PostgreSQL
+psycopg[binary]>=3.1
