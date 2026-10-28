@@ -15,6 +15,8 @@ def app():
     """A fresh database for every test. Uses in-memory SQLite unless TEST_DATABASE_URL is set
     (CI also runs the suite against PostgreSQL)."""
     app = create_app(TestConfig())
+    with app.app_context():
+        db.create_all()  # fast path for tests; test_migrations.py checks the migrations separately
     yield app
     with app.app_context():
         db.session.remove()

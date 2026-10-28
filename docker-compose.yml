@@ -1,0 +1,34 @@
+# API + PostgreSQL in one command:
+#   docker compose up --build
+# Then open http://localhost:8000/docs/
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: blog
+      POSTGRES_PASSWORD: blog          # local development only
+      POSTGRES_DB: blog
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blog -d blog"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://blog:blog@db:5432/blog
+      # Leave empty to use a random key (tokens reset when the container restarts),
+      # or put SECRET_KEY=... in a .env file next to this one.
+      SECRET_KEY: ${SECRET_KEY:-}
+      TOKEN_TTL_MINUTES: ${TOKEN_TTL_MINUTES:-60}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

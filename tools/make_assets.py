@@ -28,6 +28,8 @@ os.environ.setdefault('SECRET_KEY', 'asset-rendering-secret-key-0123456789abcdef
 from playwright.sync_api import sync_playwright  # noqa: E402
 from werkzeug.serving import make_server  # noqa: E402
 
+from flask_migrate import upgrade  # noqa: E402
+
 from blog_api import create_app  # noqa: E402
 from blog_api.config import TestConfig  # noqa: E402
 
@@ -165,6 +167,8 @@ def main():
     os.makedirs(ASSETS, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         app = create_app(TestConfig(database_url=f'sqlite:///{os.path.join(tmp, "demo.db")}'))
+        with app.app_context():
+            upgrade()  # the same migrations a deployment runs
         token, body, response = capture_exchange(app)
         stats = count_stats(app)
 

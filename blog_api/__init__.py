@@ -12,9 +12,11 @@ from sqlalchemy.engine import Engine
 
 from .config import Config
 from .errors import register_error_handlers
-from .extensions import db
+from .extensions import db, migrate
 
-OPENAPI_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'openapi.yaml')
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+OPENAPI_FILE = os.path.join(PACKAGE_DIR, 'openapi.yaml')
+MIGRATIONS_DIR = os.path.join(os.path.dirname(PACKAGE_DIR), 'migrations')
 
 
 @event.listens_for(Engine, 'connect')
@@ -33,6 +35,8 @@ def create_app(config_object=None):
     os.makedirs(app.instance_path, exist_ok=True)
 
     db.init_app(app)
+    # render_as_batch lets Alembic alter tables on SQLite, which has limited ALTER TABLE support.
+    migrate.init_app(app, db, directory=MIGRATIONS_DIR, render_as_batch=True)
 
     from .routes.articles import articles_bp
     from .routes.auth import auth_bp
@@ -44,6 +48,9 @@ def create_app(config_object=None):
 
     register_error_handlers(app)
 
+    from .demo import register_commands
+    register_commands(app)
+
     app.config['SWAGGER'] = {'title': 'Blog API', 'openapi': '3.0.3', 'uiversion': 3,
                              'specs_route': '/docs/'}
     Swagger(app, template_file=OPENAPI_FILE, parse=False)
@@ -52,7 +59,5 @@ def create_app(config_object=None):
     def health():
         return jsonify(status='ok')
 
-    with app.app_context():
-        db.create_all()
-
+    # The schema is managed by Alembic migrations:  flask --app app db upgrade
     return app

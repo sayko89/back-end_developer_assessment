@@ -33,6 +33,8 @@ class Config:
 
 
 class TestConfig(Config):
+    __test__ = False  # not a pytest test class, despite the name
+
     def __init__(self, database_url=None):
         os.environ.setdefault('SECRET_KEY', 'test-secret-key-that-is-at-least-32-bytes-long')
         super().__init__()

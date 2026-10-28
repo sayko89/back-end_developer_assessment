@@ -1,0 +1,20 @@
+# Render Blueprint for the live demo: https://render.com/docs/blueprint-spec
+#
+# The demo stores data in SQLite inside the container. On Render's free plan the service
+# sleeps after 15 idle minutes and its disk is reset, so the demo starts fresh each time
+# and DEMO_SEED fills it with sample content. (Render's free PostgreSQL expires after
+# 30 days, which doesn't suit a demo meant to stay up.)
+services:
+  - type: web
+    name: blog-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEMO_SEED
+        value: "1"
+      - key: TOKEN_TTL_MINUTES
+        value: "60"

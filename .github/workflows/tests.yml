@@ -35,3 +35,36 @@ jobs:
         env:
           TEST_DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgresql://postgres:postgres@localhost:5432/blog_test' || '' }}
         run: python -m pytest -v -W error
+
+  docker:
+    name: docker compose · end to end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start API + PostgreSQL
+        env:
+          SECRET_KEY: ci-only-secret-key-0123456789abcdef0123456789
+        run: docker compose up --build --detach --wait --wait-timeout 120
+      - name: Smoke test through the real stack
+        run: |
+          set -eu
+          api=http://localhost:8000
+          curl -sf $api/health
+          curl -sf $api/docs/ > /dev/null
+          curl -sf -X POST $api/api/register -H 'Content-Type: application/json' \
+            -d '{"username":"ada","email":"ada@example.com","password":"correct-horse-battery"}'
+          token=$(curl -sf -X POST $api/api/login -H 'Content-Type: application/json' \
+            -d '{"email":"ada@example.com","password":"correct-horse-battery"}' | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+          curl -sf -X POST $api/api/articles -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+            -d '{"title":"Hello from Docker","content":"Served by gunicorn, stored in PostgreSQL"}'
+          curl -sf $api/api/articles | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["meta"]["total"]==1, d; print("ok:", d["items"][0]["title"])'
+      - name: Data survives a restart of the API container
+        run: |
+          docker compose restart api
+          docker compose up --wait --wait-timeout 60
+          curl -sf http://localhost:8000/api/articles | python3 -c 'import sys,json; assert json.load(sys.stdin)["meta"]["total"]==1; print("persisted")'
+      - name: Logs
+        if: always()
+        run: docker compose logs --no-color
+      - run: docker compose down --volumes
+        if: always()

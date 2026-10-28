@@ -18,8 +18,9 @@
 
 A REST API for a small blog, built with **Flask**, **SQLAlchemy** and **JWT**. People can sign up, manage
 their profile, publish and edit articles, comment, and like or dislike articles. Every endpoint is
-documented in an **OpenAPI 3** reference with an interactive Swagger UI, and a test suite of 39 tests
-runs on **SQLite and PostgreSQL** in GitHub Actions on every push.
+documented in an **OpenAPI 3** reference with an interactive Swagger UI. It runs with one
+`docker compose up`, its schema is versioned with **Alembic** migrations, and 43 tests run on **SQLite
+and PostgreSQL** in GitHub Actions on every push.
 
 <br>
 
@@ -75,15 +76,29 @@ All paths start with `/api`. 🔒 = needs `Authorization: Bearer <token>`.
 
 ## Try it in 60 seconds
 
+**With Docker** — the API, PostgreSQL and the migrations, in one command:
+
 ```bash
 git clone https://github.com/sayko89/back-end_developer_assessment.git
 cd back-end_developer_assessment
+docker compose up --build
+```
+
+Open **http://localhost:8000/docs/**. The container applies the database migrations before
+starting the server (gunicorn).
+
+**Without Docker** — Python 3.10+ and SQLite:
+
+```bash
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+flask --app app db upgrade        # create the tables
+flask --app app seed-demo         # optional: sample users, articles, comments and votes
 flask --app app run
 ```
 
-Open **http://127.0.0.1:5000/docs/** for the interactive reference, or use `curl`:
+Open **http://127.0.0.1:5000/docs/** for the interactive reference, or use `curl`
+(with Docker, use port `8000`):
 
 ```bash
 # 1. sign up and log in
@@ -112,6 +127,29 @@ Everything is optional for local use; see [`.env.example`](.env.example).
 | `SECRET_KEY` | random per process | Signs tokens. **Set it in production** — with the random default, tokens stop working after a restart. |
 | `DATABASE_URL` | `sqlite:///blog.db` (in `./instance`) | For PostgreSQL: `postgresql://user:pass@host/db` and `pip install "psycopg[binary]"` |
 | `TOKEN_TTL_MINUTES` | `60` | Token lifetime |
+| `DEMO_SEED` | `0` | In Docker: `1` fills an empty database with sample content at startup |
+
+### Deploy your own
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/sayko89/back-end_developer_assessment)
+
+[`render.yaml`](render.yaml) describes a free web service built from the `Dockerfile`, with a generated
+`SECRET_KEY` and sample content. It deliberately uses SQLite: Render's free plan puts the service to sleep
+after 15 idle minutes and resets its disk, so the demo starts fresh with sample data each time — and,
+unlike Render's free PostgreSQL (which expires after 30 days), it never runs out. For a real deployment,
+attach a PostgreSQL database and set `DATABASE_URL`.
+
+### Schema changes
+
+The schema is managed with **Alembic** (via Flask-Migrate) in [`migrations/`](migrations). After changing
+a model:
+
+```bash
+flask --app app db migrate -m "describe the change"   # writes a new migration — review it
+flask --app app db upgrade
+```
+
+A test applies the migrations to an empty database and fails if they don't match the models.
 
 <br>
 
@@ -205,10 +243,13 @@ pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-39 tests cover every endpoint: success paths, validation, permissions, expired and forged tokens,
-cascading deletes and pagination. One test compares the Flask routes with `openapi.yaml`, so the
+43 tests cover every endpoint: success paths, validation, permissions, expired and forged tokens,
+cascading deletes and pagination. The migrations are applied to an empty database and compared with the
+models, and the demo seed command is tested too. One test compares the Flask routes with `openapi.yaml`, so the
 documentation can't drift out of date. GitHub Actions runs the suite on **Python 3.10 and 3.13**, each
-against **SQLite and PostgreSQL 16**, with warnings treated as errors. To run against PostgreSQL locally:
+against **SQLite and PostgreSQL 16**, with warnings treated as errors. A separate job builds the Docker
+image, starts the whole `docker compose` stack and runs an end-to-end smoke test against it — including a
+restart to check that data persists. To run the tests against PostgreSQL locally:
 
 ```bash
 TEST_DATABASE_URL=postgresql://user:pass@localhost/blog_test python -m pytest
@@ -225,7 +266,7 @@ reproduced before fixing them:
 
 | Original behaviour | Now |
 |---|---|
-| Code only inside a zip file; no `requirements.txt`, no tests | Browsable package, `requirements.txt`, 39 tests, CI |
+| Code only inside a zip file; no `requirements.txt`, no tests | Browsable package, `requirements.txt`, 43 tests, CI |
 | Swagger UI was enabled but listed **no endpoints** | Full OpenAPI 3 reference; a test keeps it in sync with the code |
 | No profile management (part of the brief) | `GET` / `PATCH` / `DELETE /api/profile`, public `GET /api/users/{id}` |
 | No way to list an article's comments | `GET /api/articles/{id}/comments` |
@@ -236,14 +277,15 @@ reproduced before fixing them:
 | Missing token → 403 | 401 with `WWW-Authenticate: Bearer` |
 | Secret key `'gizli-key'` hard-coded in three files; `debug=True` | `SECRET_KEY` from the environment; debug off by default |
 | README said "SQLite or PostgreSQL", but the database was fixed to SQLite | `DATABASE_URL`, tested on both |
+| Tables created with `create_all()` at import time | Versioned Alembic migrations, applied by the container on start |
+| Ran only with `python app.py` and the Flask dev server | Docker image with gunicorn; `docker compose up` with PostgreSQL |
 
 The URLs of the original endpoints still work.
 
 ### Not included (yet)
 
 Honest limits of the current version: no refresh tokens or token revocation (logging out means
-discarding the token), no rate limiting, and the schema is created with `create_all()` rather than
-migrations (Alembic would be the next step for a real deployment).
+discarding the token), and no rate limiting on login attempts.
 
 <br>
 
@@ -251,6 +293,11 @@ migrations (Alembic would be the next step for a real deployment).
 
 ```text
 app.py                  entry point:  flask --app app run
+Dockerfile              python:3.13-slim + gunicorn, runs as a non-root user
+docker-compose.yml      API + PostgreSQL 16
+docker-entrypoint.sh    applies migrations (and optional demo data), then starts gunicorn
+render.yaml             one-click demo deployment on Render
+migrations/             Alembic migrations
 blog_api/
   __init__.py           create_app() factory, blueprints, Swagger UI, SQLite foreign keys
   config.py             settings from environment variables
@@ -259,6 +306,7 @@ blog_api/
   validation.py         request validation and pagination
   errors.py             error classes and the single JSON error format
   openapi.yaml          API reference
+  demo.py               `flask seed-demo` sample content
   routes/               auth · users · articles · comments
 tests/                  pytest suite
 tools/make_assets.py    renders the README images from the running app
@@ -268,7 +316,7 @@ tools/make_assets.py    renders the README images from the running app
 
 ---
 
-<sub>Built with Flask, Flask-SQLAlchemy, PyJWT and Flasgger. README images are rendered by
+<sub>Built with Flask, Flask-SQLAlchemy, Flask-Migrate, PyJWT, Flasgger and gunicorn. README images are rendered by
 <a href="tools/make_assets.py"><code>tools/make_assets.py</code></a> from a real request to the API;
 typefaces <a href="https://github.com/floriankarsten/space-grotesk">Space Grotesk</a> and
 <a href="https://github.com/IBM/plex">IBM Plex</a> (SIL Open Font License, see <a href="tools/fonts"><code>tools/fonts</code></a>).
