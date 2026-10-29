@@ -6,6 +6,11 @@
   <a href="https://github.com/sayko89/back-end_developer_assessment/actions/workflows/tests.yml"><img src="https://github.com/sayko89/back-end_developer_assessment/actions/workflows/tests.yml/badge.svg" alt="tests"></a>
 </p>
 
+<p align="center">
+  <b>UniVision &nbsp;·&nbsp; Back-End Developer Assessment &nbsp;·&nbsp; 2025</b><br>
+  <sub>My solution to the take-home task for UniVision's back-end developer role, later extended into a production-style API.</sub>
+</p>
+
 <h3 align="center">
   <a href="https://blog-api-ni5d.onrender.com/docs/">▶&nbsp; Live demo — try every endpoint in your browser</a>
 </h3>
@@ -26,7 +31,8 @@
 
 <br>
 
-A REST API for a small blog, built with **Flask**, **SQLAlchemy** and **JWT**. People can sign up, manage
+This is my solution to **UniVision's back-end developer assessment**: a REST API for a small blog,
+built with **Flask**, **SQLAlchemy** and **JWT**. People can sign up, manage
 their profile, publish and edit articles, comment, and like or dislike articles. Every endpoint is
 documented in an **OpenAPI 3** reference with an interactive Swagger UI. It runs with one
 `docker compose up`, its schema is versioned with **Alembic** migrations, and 43 tests run on **SQLite
@@ -36,8 +42,9 @@ and PostgreSQL** in GitHub Actions on every push.
 
 ## The assignment
 
-This started as a take-home task for a back-end developer role at UniVision (June 2025). The brief asked
-for three things — here is where each one lives:
+UniVision gave this as the take-home task for a **back-end developer** role (June 2025): design and build
+the back-end services and API of a blog management system. The brief asked for three things — here is
+where each one lives:
 
 | The brief asked for | Where it is |
 |---|---|

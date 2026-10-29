@@ -89,6 +89,8 @@ body {{ width: 1280px; height: 640px; background: {PAPER}; color: {INK}; font-fa
 .left {{ position: absolute; left: 72px; top: 64px; width: 560px; }}
 .kicker {{ font-family: 'Mono'; font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; }}
 .kicker b {{ color: {SIGNAL}; }}
+.kicker .org {{ display: inline-block; background: {SIGNAL}; color: {PAPER}; padding: 6px 12px 5px; margin-right: 14px;
+               letter-spacing: .18em; font-size: 14px; }}
 h1 {{ font-family: 'Grotesk'; font-weight: 700; font-size: 128px; letter-spacing: -.045em; line-height: .9; margin-top: 34px; }}
 h1 span {{ color: {SIGNAL}; }}
 .sub {{ font-size: 25px; line-height: 1.38; margin-top: 26px; color: #2b2b2b; }}
@@ -110,7 +112,7 @@ h1 span {{ color: {SIGNAL}; }}
 pre {{ font-family: 'Mono'; margin: 8px 0 0; white-space: pre; }}
 </style></head><body>
 <div class="left">
-  <div class="kicker"><b>■</b>&nbsp; Take-home assessment &nbsp;·&nbsp; UniVision &nbsp;·&nbsp; 2025</div>
+  <div class="kicker"><span class="org">UniVision</span>Back-end developer assessment &nbsp;·&nbsp; 2025</div>
   <h1>Blog API<span>.</span></h1>
   <div class="sub">A RESTful backend for articles, comments and votes — with accounts, token auth and an OpenAPI reference.</div>
   <div class="stack">Python · Flask · SQLAlchemy · JWT · OpenAPI 3</div>
