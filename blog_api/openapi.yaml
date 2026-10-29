@@ -5,11 +5,29 @@ info:
   description: |
     RESTful backend for a small blog: accounts and profiles, articles, comments and votes.
 
-    **Authentication.** Log in with `POST /api/login` and send the token on protected
-    endpoints as `Authorization: Bearer <token>`. Tokens expire after 60 minutes by default.
+    ### How to try it
+    1. Call `POST /api/login`. On the live demo (or after `flask seed-demo`) you can use
+       `ada@example.com` / `demo-password-123`.
+    2. Copy the `token` from the response, press **Authorize** and paste it.
+    3. Every endpoint with a lock icon now works. Tokens are valid for 60 minutes.
 
-    **Errors.** Every error has the same shape:
-    `{"error": {"code": "validation_error", "message": "…", "details": {"field": "…"}}}`
+    ### Error responses
+    When a request can't be completed, every endpoint answers in the same format, so a client
+    needs only one error handler. For example, creating an article with an empty title returns
+    `400 Bad Request` with:
+
+    ```json
+    {
+      "error": {
+        "code": "validation_error",
+        "message": "The request body is invalid.",
+        "details": {"title": "This field cannot be empty."}
+      }
+    }
+    ```
+
+    `code` is stable and meant for programs; `message` is for people; `details` (when present)
+    names each invalid field.
 servers:
   - url: /
 tags:
